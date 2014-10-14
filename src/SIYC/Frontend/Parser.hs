@@ -1,5 +1,5 @@
 module SIYC.Frontend.Parser
-( parse
+( siycParse
 ) where
 
 import SIYC.Frontend.AST
