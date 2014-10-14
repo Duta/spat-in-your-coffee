@@ -104,6 +104,11 @@ integer
 integer
   = T.integer siycLexer
 
+charLiteral
+  :: Parser Char
+charLiteral
+  = T.charLiteral siycLexer
+
 stringLiteral
   :: Parser String
 stringLiteral
@@ -285,15 +290,15 @@ siycExpression
       siycCall
         = SIYCCall <$> identifier <*> args
       siycChar
-        = error "siycChar"
+        = SIYCChar <$> charLiteral
       siycInfix
-        = error "siycInfix"
+        = SIYCInfix <$> siycExpression <*> siycInfixOp <*> siycExpression
       siycNew
         = reserved "new" >> (SIYCNew <$> typeName <*> args)
       siycPostfix
-        = error "siycPostfix"
+        = SIYCPostfix <$> siycExpression <*> siycPostfixOp
       siycPrefix
-        = error "siycPrefix"
+        = SIYCPrefix <$> siycPrefixOp <*> siycExpression
       siycString
         = SIYCString <$> stringLiteral
       siycVar
@@ -311,3 +316,18 @@ siycDeclaration
       siycExpression
     semi
     return $ SIYCDeclaration t var expr
+
+siycInfixOp
+  :: Parser SIYCInfixOp
+siycInfixOp
+  = error "SIYC.Frontend.Parser.siycInfixOp"
+
+siycPostfixOp
+  :: Parser SIYCPostfixOp
+siycPostfixOp
+  = error "SIYC.Frontend.Parser.siycPostfixOp"
+
+siycPrefixOp
+  :: Parser SIYCPrefixOp
+siycPrefixOp
+  = error "SIYC.Frontend.Parser.siycPrefixOp"
