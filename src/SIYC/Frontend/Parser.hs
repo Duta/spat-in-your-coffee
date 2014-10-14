@@ -134,6 +134,11 @@ reserved'
 reserved' s
   = T.reserved siycLexer s >> return s
 
+args
+  :: Parser [SIYCExpression]
+args
+  = parens $ commaSep siycExpression
+
 params
   :: Parser [SIYCParameter]
 params
@@ -221,14 +226,17 @@ siycStatement
       siycBlock
         = SIYCBlock <$> bracedStatements
       siycEmpty
-        = return SIYCEmpty :: Parser SIYCStatement
+        = semi >> return SIYCEmpty
       siycExpression'
-        = SIYCExpression <$> siycExpression
+        = do
+          expr <- siycDeclaration <|> siycExpression
+          semi
+          return $ SIYCExpression expr
       siycFor
         = do
           reserved "for"
           (init, cond, inc) <- parens $ do
-            init <- siycExpression
+            init <- siycDeclaration <|> siycExpression
             semi
             cond <- siycExpression
             semi
@@ -254,9 +262,52 @@ siycStatement
         = do
           reserved "while"
           SIYCWhile <$> parens siycExpression <*> siycStatement
-    in error "SIYC.Frontend.Parser.siycStatement"
+    in siycBlock
+    <|>siycFor
+    <|>siycIf
+    <|>siycReturn
+    <|>siycWhile
+    <|>siycEmpty
+    <|>siycExpression'
 
 siycExpression
   :: Parser SIYCExpression
 siycExpression
-  = error "SIYC.Frontend.Parser.siycExpression"
+  = let
+      siycAssignment
+        = do
+          e1 <- siycExpression
+          reservedOp "="
+          SIYCAssignment e1 <$> siycExpression
+      siycBoolean
+        = (reserved "true"  >> return (SIYCBoolean True))
+       <|>(reserved "false" >> return (SIYCBoolean False))
+      siycCall
+        = SIYCCall <$> identifier <*> args
+      siycChar
+        = error "siycChar"
+      siycInfix
+        = error "siycInfix"
+      siycNew
+        = reserved "new" >> (SIYCNew <$> typeName <*> args)
+      siycPostfix
+        = error "siycPostfix"
+      siycPrefix
+        = error "siycPrefix"
+      siycString
+        = SIYCString <$> stringLiteral
+      siycVar
+        = SIYCVar <$> identifier
+    in error "SIYC.Frontend.Parser.siycExpression"
+
+siycDeclaration
+  :: Parser SIYCExpression
+siycDeclaration
+  = do
+    t <- typeName
+    var <- identifier
+    expr <- optionMaybe $ do
+      reservedOp "="
+      siycExpression
+    semi
+    return $ SIYCDeclaration t var expr
