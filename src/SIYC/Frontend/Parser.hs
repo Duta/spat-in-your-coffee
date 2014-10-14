@@ -119,10 +119,40 @@ braces
 braces
   = T.braces siycLexer
 
+commaSep
+  :: Parser a -> Parser [a]
+commaSep
+  = T.commaSep siycLexer
+
 whiteSpace
   :: Parser ()
 whiteSpace
   = T.whiteSpace siycLexer
+
+reserved'
+  :: String -> Parser String
+reserved' s
+  = T.reserved siycLexer s >> return s
+
+params
+  :: Parser [SIYCParameter]
+params
+  = parens $ commaSep siycParameter
+
+bracedStatements
+  :: Parser [SIYCStatement]
+bracedStatements
+  = braces $ many siycStatement
+
+typeName
+  :: Parser TypeName
+typeName
+  = reserved' "boolean"
+ <|>reserved' "char"
+ <|>reserved' "double"
+ <|>reserved' "int"
+ <|>reserved' "void"
+ <|>identifier
 
 siycFile
   :: Parser SIYCFile
@@ -166,15 +196,25 @@ siycField
 siycConstructor
   :: Parser SIYCConstructor
 siycConstructor
-  = error "SIYC.Frontend.Parser.siycConstructor"
+  = SIYCConstructor <$> siycModifier <*> identifier <*> params <*> bracedStatements
 
 siycMethod
   :: Parser SIYCMethod
 siycMethod
-  = error "SIYC.Frontend.Parser.siycMethod"
+  = SIYCMethod <$> siycModifier <*> typeName <*> identifier <*> params <*> bracedStatements
 
 siycModifier
   :: Parser SIYCModifier
 siycModifier
   = (reserved "private" >> return SIYCPrivate)
  <|>(reserved "public"  >> return SIYCPublic)
+
+siycParameter
+  :: Parser SIYCParameter
+siycParameter
+  = SIYCParameter <$> typeName <*> identifier
+
+siycStatement
+  :: Parser SIYCStatement
+siycStatement
+  = error "SIYC.Frontend.Parser.siycStatement"
