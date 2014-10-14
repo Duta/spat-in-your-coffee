@@ -18,24 +18,31 @@ import SIYC.Util
 
 data SIYCFile
   = SIYCFile [SIYCImport] SIYCClass
+    deriving Show
 
 data SIYCImport
   = SIYCImport ClassName
+    deriving Show
 
 data SIYCClass
   = SIYCClass ClassName [SIYCField] [SIYCConstructor] [SIYCMethod]
+    deriving Show
 
 data SIYCField
-  = SIYCField SIYCModifier Identifier
+  = SIYCField SIYCModifier TypeName Identifier
+    deriving Show
 
 data SIYCConstructor
   = SIYCConstructor SIYCModifier ClassName [SIYCParameter] [SIYCStatement]
+    deriving Show
 
 data SIYCMethod
   = SIYCMethod SIYCModifier TypeName Identifier [SIYCParameter] [SIYCStatement]
+    deriving Show
 
 data SIYCParameter
   = SIYCParameter TypeName Identifier
+    deriving Show
 
 data SIYCStatement
   = SIYCBlock [SIYCStatement]
@@ -45,6 +52,7 @@ data SIYCStatement
   | SIYCIf SIYCExpression SIYCStatement (Maybe SIYCStatement)
   | SIYCReturn (Maybe SIYCExpression)
   | SIYCWhile SIYCExpression SIYCStatement
+    deriving Show
 
 data SIYCExpression
   = SIYCAssignment SIYCExpression SIYCExpression
@@ -58,10 +66,12 @@ data SIYCExpression
   | SIYCPrefix SIYCPrefixOp SIYCExpression
   | SIYCString String
   | SIYCVar Identifier
+    deriving Show
 
 data SIYCModifier
   = SIYCPrivate
   | SIYCPublic
+    deriving Show
 
 data SIYCInfixOp
   = SIYCAnd
@@ -77,6 +87,7 @@ data SIYCInfixOp
   | SIYCOr
   | SIYCPlus
   | SIYCTimes
+    deriving Show
 
 data SIYCPrefixOp
   = SIYCNot
@@ -84,7 +95,9 @@ data SIYCPrefixOp
   | SIYCPreIncrement
   | SIYCUnaryPlus
   | SIYCUnaryMinus
+    deriving Show
 
 data SIYCPostfixOp
   = SIYCPostDecrement
   | SIYCPostIncrement
+    deriving Show

@@ -196,16 +196,16 @@ siycClass
     classContents
       :: Parser ([SIYCField], [SIYCConstructor], [SIYCMethod])
     classContents
-      = (siycField       >>= \f -> classContents >>= return . (_1 %~ (f:)))
-     <|>(siycConstructor >>= \c -> classContents >>= return . (_2 %~ (c:)))
-     <|>(siycMethod      >>= \m -> classContents >>= return . (_3 %~ (m:)))
-     <|>(eof >> return ([], [], []))
+      = try (siycField       >>= \f -> classContents >>= return . (_1 %~ (f:)))
+     <|>try (siycConstructor >>= \c -> classContents >>= return . (_2 %~ (c:)))
+     <|>try (siycMethod      >>= \m -> classContents >>= return . (_3 %~ (m:)))
+     <|>(return ([], [], []))
 
 siycField
   :: Parser SIYCField
 siycField
   = do
-    field <- SIYCField <$> siycModifier <*> identifier
+    field <- SIYCField <$> siycModifier <*> typeName <*> identifier
     semi
     return field
 
@@ -240,7 +240,7 @@ siycStatement
         = semi >> return SIYCEmpty
       siycExpression'
         = do
-          expr <- siycDeclaration <|> siycExpression
+          expr <- try siycDeclaration <|> siycExpression
           semi
           return $ SIYCExpression expr
       siycFor
@@ -280,6 +280,7 @@ siycStatement
     <|>siycWhile
     <|>siycEmpty
     <|>siycExpression'
+    <?>"statement"
 
 siycExpression
   :: Parser SIYCExpression
@@ -307,8 +308,9 @@ siycTerminals
     <|>siycChar
     <|>siycNew
     <|>siycString
-    <|>siycCall
+    <|>try siycCall
     <|>siycVar
+    <?>"expression"
 
 siycDeclaration
   :: Parser SIYCExpression
