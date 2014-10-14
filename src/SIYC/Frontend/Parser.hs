@@ -85,17 +85,20 @@ identifier
   = T.identifier siycLexer
 
 reserved
-  :: String -> Parser ()
+  :: String
+  -> Parser ()
 reserved
   = T.reserved siycLexer
 
 reservedOp
-  :: String -> Parser ()
+  :: String
+  -> Parser ()
 reservedOp
   = T.reservedOp siycLexer
 
 parens
-  :: Parser a -> Parser a
+  :: Parser a
+  -> Parser a
 parens
   = T.parens siycLexer
 
@@ -120,12 +123,14 @@ semi
   = T.semi siycLexer
 
 braces
-  :: Parser a -> Parser a
+  :: Parser a
+  -> Parser a
 braces
   = T.braces siycLexer
 
 commaSep
-  :: Parser a -> Parser [a]
+  :: Parser a
+  -> Parser [a]
 commaSep
   = T.commaSep siycLexer
 
@@ -135,7 +140,8 @@ whiteSpace
   = T.whiteSpace siycLexer
 
 reserved'
-  :: String -> Parser String
+  :: String
+  -> Parser String
 reserved' s
   = T.reserved siycLexer s >> return s
 
@@ -278,12 +284,12 @@ siycStatement
 siycExpression
   :: Parser SIYCExpression
 siycExpression
+  = buildExpressionParser siycOperators siycTerminals
+
+siycTerminals
+  :: Parser SIYCExpression
+siycTerminals
   = let
-      siycAssignment
-        = do
-          e1 <- siycExpression
-          reservedOp "="
-          SIYCAssignment e1 <$> siycExpression
       siycBoolean
         = (reserved "true"  >> return (SIYCBoolean True))
        <|>(reserved "false" >> return (SIYCBoolean False))
@@ -291,19 +297,18 @@ siycExpression
         = SIYCCall <$> identifier <*> args
       siycChar
         = SIYCChar <$> charLiteral
-      siycInfix
-        = SIYCInfix <$> siycExpression <*> siycInfixOp <*> siycExpression
       siycNew
         = reserved "new" >> (SIYCNew <$> typeName <*> args)
-      siycPostfix
-        = SIYCPostfix <$> siycExpression <*> siycPostfixOp
-      siycPrefix
-        = SIYCPrefix <$> siycPrefixOp <*> siycExpression
       siycString
         = SIYCString <$> stringLiteral
       siycVar
         = SIYCVar <$> identifier
-    in error "SIYC.Frontend.Parser.siycExpression"
+    in siycBoolean
+    <|>siycChar
+    <|>siycNew
+    <|>siycString
+    <|>siycCall
+    <|>siycVar
 
 siycDeclaration
   :: Parser SIYCExpression
@@ -317,17 +322,65 @@ siycDeclaration
     semi
     return $ SIYCDeclaration t var expr
 
-siycInfixOp
-  :: Parser SIYCInfixOp
-siycInfixOp
-  = error "SIYC.Frontend.Parser.siycInfixOp"
+siycOperators
+  :: OperatorTable Char () SIYCExpression
+siycOperators
+  = [[postfix "--" SIYCPostDecrement
+     ,postfix "++" SIYCPostIncrement]
+    ,[prefix  "!"  SIYCNot
+     ,prefix  "--" SIYCPreDecrement
+     ,prefix  "++" SIYCPreIncrement
+     ,prefix  "+"  SIYCUnaryPlus
+     ,prefix  "-"  SIYCUnaryMinus]
+    ,[infix'  "/"  SIYCDivide       AssocLeft
+     ,infix'  "%"  SIYCModulus      AssocLeft
+     ,infix'  "*"  SIYCTimes        AssocLeft]
+    ,[infix'  "-"  SIYCMinus        AssocLeft
+     ,infix'  "+"  SIYCPlus         AssocLeft]
+    ,[infix'  ">"  SIYCGreater      AssocLeft
+     ,infix'  ">=" SIYCGreaterEqual AssocLeft
+     ,infix'  "<"  SIYCLess         AssocLeft
+     ,infix'  "<=" SIYCLessEqual    AssocLeft]
+    ,[infix'  "==" SIYCEqual        AssocLeft
+     ,infix'  "!=" SIYCNotEqual     AssocLeft]
+    ,[infix'  "&&" SIYCAnd          AssocLeft]
+    ,[infix'  "||" SIYCOr           AssocLeft]
+    ,[infix'' "="  SIYCAssignment   AssocRight]
+    ]
 
-siycPostfixOp
-  :: Parser SIYCPostfixOp
-siycPostfixOp
-  = error "SIYC.Frontend.Parser.siycPostfixOp"
+opParser
+  :: String
+  -> a
+  -> Parser a
+opParser sym op
+  = reservedOp sym >> return op
 
-siycPrefixOp
-  :: Parser SIYCPrefixOp
-siycPrefixOp
-  = error "SIYC.Frontend.Parser.siycPrefixOp"
+postfix
+  :: String
+  -> SIYCPostfixOp
+  -> Operator Char () SIYCExpression
+postfix sym op
+  = Postfix $ opParser sym (\expr -> SIYCPostfix expr op)
+
+prefix
+  :: String
+  -> SIYCPrefixOp
+  -> Operator Char () SIYCExpression
+prefix sym op
+  = Prefix $ opParser sym (\expr -> SIYCPrefix op expr)
+
+infix'
+  :: String
+  -> SIYCInfixOp
+  -> Assoc
+  -> Operator Char () SIYCExpression
+infix' sym op assoc
+  = infix'' sym (\e1 e2 -> SIYCInfix e1 op e2) assoc
+
+infix''
+  :: String
+  -> (SIYCExpression -> SIYCExpression -> SIYCExpression)
+  -> Assoc
+  -> Operator Char () SIYCExpression
+infix'' sym op assoc
+  = Infix (opParser sym op) assoc
