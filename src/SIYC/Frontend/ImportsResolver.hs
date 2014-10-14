@@ -1,5 +1,5 @@
 module SIYC.Frontend.ImportsResolver
-( resolve'
+( loadAndResolve
 ) where
 
 import SIYC.Frontend.AST
@@ -10,17 +10,27 @@ import Control.Exception
 import System.Exit
 import Text.ParserCombinators.Parsec (ParseError)
 
-resolve
+loadAndResolve
   :: ClassName
   -> IO (Either ParseError [SIYCClass])
-resolve name
+loadAndResolve
+  = loadAndResolve' []
+
+loadAndResolve'
+  :: [ClassName]
+  -> ClassName
+  -> IO (Either ParseError [SIYCClass])
+loadAndResolve' loadedNames name
+  | name `elem` loadedNames
+  = return $ Right []
+  | otherwise
   = do
     code <- handler name `handle` readFile (name ++ ".siyc")
     case siycParse name code of
       Left e ->
         return $ Left e
       Right file ->
-        resolve' file
+        resolve (name:loadedNames) file
   where
     handler
       :: ClassName
@@ -31,10 +41,11 @@ resolve name
         putStrLn $ "Couldn't read class " ++ name ++ "'s file"
         exitFailure
 
-resolve'
-  :: SIYCFile
+resolve
+  :: [ClassName]
+  -> SIYCFile
   -> IO (Either ParseError [SIYCClass])
-resolve' (SIYCFile imports c)
+resolve loadedNames (SIYCFile imports c)
   = resolveAll imports >>= return . fmap (c:)
   where
     resolveAll
@@ -44,7 +55,7 @@ resolve' (SIYCFile imports c)
       = return $ Right []
     resolveAll (SIYCImport name:imports)
       = do
-        resolved <- resolve name
+        resolved <- loadAndResolve' loadedNames name
         case resolved of
           Left e ->
             return $ Left e
