@@ -153,11 +153,15 @@ siycClass
       = (siycField       >>= \f -> classContents >>= return . (_1 %~ (f:)))
      <|>(siycConstructor >>= \c -> classContents >>= return . (_2 %~ (c:)))
      <|>(siycMethod      >>= \m -> classContents >>= return . (_3 %~ (m:)))
+     <|>(eof >> return ([], [], []))
 
 siycField
   :: Parser SIYCField
 siycField
-  = error "SIYC.Frontend.Parser.siycField"
+  = do
+    field <- SIYCField <$> siycModifier <*> identifier
+    semi
+    return field
 
 siycConstructor
   :: Parser SIYCConstructor
@@ -168,3 +172,9 @@ siycMethod
   :: Parser SIYCMethod
 siycMethod
   = error "SIYC.Frontend.Parser.siycMethod"
+
+siycModifier
+  :: Parser SIYCModifier
+siycModifier
+  = (reserved "private" >> return SIYCPrivate)
+ <|>(reserved "public"  >> return SIYCPublic)
