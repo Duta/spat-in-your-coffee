@@ -5,7 +5,8 @@ module SIYC.Frontend.Parser
 import SIYC.Frontend.AST
 import SIYC.Util
 
-import Control.Applicative hiding (many)
+import Control.Applicative ((<$>), (<*>))
+import Control.Lens
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
@@ -131,9 +132,39 @@ siycFile
 siycImport
   :: Parser SIYCImport
 siycImport
-  = error "siycImport"
+  = do
+    reserved "import"
+    name <- identifier
+    semi
+    return $ SIYCImport name
 
 siycClass
   :: Parser SIYCClass
 siycClass
-  = error "siycClass"
+  = do
+    reserved "class"
+    name <- identifier
+    (fields, constructors, methods) <- braces classContents
+    return $ SIYCClass name fields constructors methods
+  where
+    classContents
+      :: Parser ([SIYCField], [SIYCConstructor], [SIYCMethod])
+    classContents
+      = (siycField       >>= \f -> classContents >>= return . (_1 %~ (f:)))
+     <|>(siycConstructor >>= \c -> classContents >>= return . (_2 %~ (c:)))
+     <|>(siycMethod      >>= \m -> classContents >>= return . (_3 %~ (m:)))
+
+siycField
+  :: Parser SIYCField
+siycField
+  = error "SIYC.Frontend.Parser.siycField"
+
+siycConstructor
+  :: Parser SIYCConstructor
+siycConstructor
+  = error "SIYC.Frontend.Parser.siycConstructor"
+
+siycMethod
+  :: Parser SIYCMethod
+siycMethod
+  = error "SIYC.Frontend.Parser.siycMethod"
