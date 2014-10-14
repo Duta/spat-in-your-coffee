@@ -41,7 +41,7 @@ data SIYCStatement
   = SIYCBlock [SIYCStatement]
   | SIYCEmpty
   | SIYCExpression SIYCExpression
-  | SIYCFor SIYCExpression SIYCExpression SIYCExpression
+  | SIYCFor SIYCExpression SIYCExpression SIYCExpression SIYCStatement
   | SIYCIf SIYCExpression SIYCStatement (Maybe SIYCStatement)
   | SIYCReturn (Maybe SIYCExpression)
   | SIYCWhile SIYCExpression SIYCStatement

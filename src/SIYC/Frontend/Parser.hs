@@ -217,4 +217,46 @@ siycParameter
 siycStatement
   :: Parser SIYCStatement
 siycStatement
-  = error "SIYC.Frontend.Parser.siycStatement"
+  = let
+      siycBlock
+        = SIYCBlock <$> bracedStatements
+      siycEmpty
+        = return SIYCEmpty :: Parser SIYCStatement
+      siycExpression'
+        = SIYCExpression <$> siycExpression
+      siycFor
+        = do
+          reserved "for"
+          (init, cond, inc) <- parens $ do
+            init <- siycExpression
+            semi
+            cond <- siycExpression
+            semi
+            inc <- siycExpression
+            return (init, cond, inc)
+          SIYCFor init cond inc <$> siycStatement
+      siycIf
+        = do
+          reserved "if"
+          cond <- parens siycExpression
+          s1 <- siycStatement
+          s2 <- optionMaybe $ do
+            reserved "else"
+            siycStatement
+          return $ SIYCIf cond s1 s2
+      siycReturn
+        = do
+          reserved "return"
+          expr <- optionMaybe siycExpression
+          semi
+          return $ SIYCReturn expr
+      siycWhile
+        = do
+          reserved "while"
+          SIYCWhile <$> parens siycExpression <*> siycStatement
+    in error "SIYC.Frontend.Parser.siycStatement"
+
+siycExpression
+  :: Parser SIYCExpression
+siycExpression
+  = error "SIYC.Frontend.Parser.siycExpression"
