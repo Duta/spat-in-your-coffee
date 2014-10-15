@@ -7,30 +7,35 @@ import SIYC.Frontend.Parser
 import SIYC.Util
 
 import Control.Exception
+import Control.Monad.State
 import System.Exit
 import Text.ParserCombinators.Parsec (ParseError)
 
 loadAndResolve
   :: ClassName
   -> IO (Either ParseError [SIYCClass])
-loadAndResolve
-  = loadAndResolve' []
+loadAndResolve name
+  = evalStateT (loadAndResolve' name) []
+
+loadAndResolveAll
+  :: [ClassName]
+  -> IO (Either ParseError [SIYCClass])
+loadAndResolveAll names
+  = evalStateT (loadAndResolveAll' $ map SIYCImport names) []
 
 loadAndResolve'
-  :: [ClassName]
-  -> ClassName
-  -> IO (Either ParseError [SIYCClass])
-loadAndResolve' loadedNames name
-  | name `elem` loadedNames
-  = return $ Right []
-  | otherwise
+  :: ClassName
+  -> StateT [ClassName] IO (Either ParseError [SIYCClass])
+loadAndResolve' name
   = do
-    code <- handler name `handle` readFile (name ++ ".siyc")
-    case siycParse name code of
-      Left e ->
-        return $ Left e
-      Right file ->
-        resolve (name:loadedNames) file
+    loadedNames <- get
+    if name `elem` loadedNames then
+      return $ Right []
+    else do
+      modify (name:)
+      code <- lift $ handler name `handle` readFile (name ++ ".siyc")
+      ast <- return $ siycParse name code
+      either (return . Left) resolve ast
   where
     handler
       :: ClassName
@@ -41,26 +46,25 @@ loadAndResolve' loadedNames name
         putStrLn $ "Couldn't read class " ++ name ++ "'s file"
         exitFailure
 
+loadAndResolveAll'
+  :: [SIYCImport]
+  -> StateT [ClassName] IO (Either ParseError [SIYCClass])
+loadAndResolveAll' []
+  = return $ Right []
+loadAndResolveAll' (SIYCImport name:imports)
+  = do
+    resolved <- loadAndResolve' name
+    case resolved of
+      Left e ->
+        return $ Left e
+      Right cs -> do
+        resolveds <- loadAndResolveAll' imports
+        return $ fmap (cs++) resolveds
+
 resolve
-  :: [ClassName]
-  -> SIYCFile
-  -> IO (Either ParseError [SIYCClass])
-resolve loadedNames (SIYCFile imports c)
-  = resolveAll imports >>= return . fmap (c:)
-  where
-    resolveAll
-      :: [SIYCImport]
-      -> IO (Either ParseError [SIYCClass])
-    resolveAll []
-      = return $ Right []
-    resolveAll (SIYCImport name:imports)
-      = do
-        resolved <- loadAndResolve' loadedNames name
-        case resolved of
-          Left e ->
-            return $ Left e
-          Right cs -> do
-            resolveds <- resolveAll imports
-            return $ fmap (cs++) resolveds
+  :: SIYCFile
+  -> StateT [ClassName] IO (Either ParseError [SIYCClass])
+resolve (SIYCFile imports c)
+  = loadAndResolveAll' imports >>= return . fmap (c:)
 
 -- Jesus this is all ugly. Look into improvements
