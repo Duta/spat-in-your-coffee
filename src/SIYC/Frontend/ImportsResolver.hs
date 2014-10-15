@@ -7,9 +7,11 @@ import SIYC.Frontend.AST
 import SIYC.Frontend.Parser
 import SIYC.Util
 
-import Control.Applicative ((<$>))
+import Control.Conditional ((??))
 import Control.Exception
-import Control.Monad.State
+import Control.Monad.State hiding (mapM)
+import Data.Traversable (mapM)
+import Prelude hiding (mapM)
 import System.Exit
 import Text.ParserCombinators.Parsec (ParseError)
 
@@ -29,22 +31,20 @@ loadAndResolve'
   :: ClassName
   -> StateT [ClassName] IO (Either ParseError [SIYCClass])
 loadAndResolve' name
-  = do
-    loadedNames <- get
-    if name `elem` loadedNames then
-      return $ Right []
-    else do
-      modify (name:)
-      code <- lift $ handler name `handle` readFile (name ++ ".siyc")
-      ast <- return $ siycParse name code
-      either (return . Left) resolve ast
+  = get >>= (return (Right []) ?? processFile) . elem name
   where
+    processFile
+      :: StateT [ClassName] IO (Either ParseError [SIYCClass])
+    processFile
+     = modify (name:)                                     >>
+       lift (handler `handle` readFile (name ++ ".siyc")) >>=
+       return . siycParse name                            >>=
+       mapM' resolve
     handler
-      :: ClassName
-      -> IOError
+      :: IOError
       -> IO a
-    handler name _
-      = do
+    handler
+      = const $ do
         putStrLn $ "Couldn't read class " ++ name ++ "'s file"
         exitFailure
 
@@ -54,19 +54,17 @@ loadAndResolveAll'
 loadAndResolveAll' []
   = return $ Right []
 loadAndResolveAll' (SIYCImport name:imports)
-  = do
-    resolved <- loadAndResolve' name
-    case resolved of
-      Left e ->
-        return $ Left e
-      Right cs -> do
-        resolveds <- loadAndResolveAll' imports
-        return $ (cs++) <$> resolveds
+  = loadAndResolve' name >>= mapM' (resolve' imports)
 
 resolve
   :: SIYCFile
   -> StateT [ClassName] IO (Either ParseError [SIYCClass])
 resolve (SIYCFile imports c)
-  = loadAndResolveAll' imports >>= return . fmap (c:)
+  = resolve' imports [c]
 
--- Jesus this is all ugly. Look into improvements
+resolve'
+  :: [SIYCImport]
+  -> [SIYCClass]
+  -> StateT [ClassName] IO (Either ParseError [SIYCClass])
+resolve' imports cs
+  = loadAndResolveAll' imports >>= return . fmap (cs++)
