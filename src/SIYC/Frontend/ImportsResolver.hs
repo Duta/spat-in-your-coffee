@@ -1,5 +1,6 @@
 module SIYC.Frontend.ImportsResolver
 ( loadAndResolve
+, loadAndResolveAll
 ) where
 
 import SIYC.Frontend.AST
