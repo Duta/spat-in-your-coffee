@@ -97,5 +97,25 @@ findUnknownClasses cs
     checkExpression
       :: SIYCExpression
       -> [ClassName]
+    checkExpression (SIYCAssignment e1 e2)
+      = concatMap checkExpression [e1, e2]
+    checkExpression (SIYCCall _ args)
+      = concatMap checkExpression args
+    checkExpression (SIYCDeclaration name _ expr)
+      = concat
+      [ check name
+      , maybe [] checkExpression expr
+      ]
+    checkExpression (SIYCInfix e1 _ e2)
+      = concatMap checkExpression [e1, e2]
+    checkExpression (SIYCNew name args)
+      = concat
+      [ check name
+      , concatMap checkExpression args
+      ]
+    checkExpression (SIYCPostfix expr _)
+      = checkExpression expr
+    checkExpression (SIYCPrefix _ expr)
+      = checkExpression expr
     checkExpression _
-      = error "SIYC.ASTChecks.NoUnknownClasses._checkExpression"
+      = []

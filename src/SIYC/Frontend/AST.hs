@@ -61,7 +61,7 @@ data SIYCExpression
   | SIYCChar Char
   | SIYCDeclaration TypeName Identifier (Maybe SIYCExpression)
   | SIYCInfix SIYCExpression SIYCInfixOp SIYCExpression
-  | SIYCNew TypeName [SIYCExpression]
+  | SIYCNew ClassName [SIYCExpression]
   | SIYCPostfix SIYCExpression SIYCPostfixOp
   | SIYCPrefix SIYCPrefixOp SIYCExpression
   | SIYCString String
