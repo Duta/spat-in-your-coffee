@@ -160,6 +160,7 @@ bracedStatements
 bracedStatements
   = braces $ many siycStatement
 
+-- TODO: Refactor to use SIYC.BuiltIn.PrimitiveTypes.names
 typeName
   :: Parser TypeName
 typeName

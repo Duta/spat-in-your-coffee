@@ -7,6 +7,7 @@ import SIYC.Frontend.AST
 import SIYC.Frontend.Parser
 import SIYC.Util
 
+import Control.Applicative ((<$>))
 import Control.Exception
 import Control.Monad.State
 import System.Exit
@@ -60,7 +61,7 @@ loadAndResolveAll' (SIYCImport name:imports)
         return $ Left e
       Right cs -> do
         resolveds <- loadAndResolveAll' imports
-        return $ fmap (cs++) resolveds
+        return $ (cs++) <$> resolveds
 
 resolve
   :: SIYCFile
