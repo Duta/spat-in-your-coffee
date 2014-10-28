@@ -88,6 +88,7 @@ stat (CFor init cond inc st)
   = []
 stat (CIf cond s1 s2)
   = [concat ["if(", expr cond, ") {"]]
+    ++ map (tab++) (stat s1)
     ++ maybe
       ["}"]
       (\s2' ->
