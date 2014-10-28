@@ -17,24 +17,24 @@ import Text.ParserCombinators.Parsec (ParseError)
 
 loadAndResolve
   :: ClassName
-  -> IO (Either ParseError [SIYCClass])
+  -> IO (Either ParseError [SIYCFile])
 loadAndResolve name
   = evalStateT (loadAndResolve' name) []
 
 loadAndResolveAll
   :: [ClassName]
-  -> IO (Either ParseError [SIYCClass])
+  -> IO (Either ParseError [SIYCFile])
 loadAndResolveAll names
   = evalStateT (loadAndResolveAll' $ map SIYCImport names) []
 
 loadAndResolve'
   :: ClassName
-  -> StateT [ClassName] IO (Either ParseError [SIYCClass])
+  -> StateT [ClassName] IO (Either ParseError [SIYCFile])
 loadAndResolve' name
   = get >>= (return (Right []) ?? processFile) . elem name
   where
     processFile
-      :: StateT [ClassName] IO (Either ParseError [SIYCClass])
+      :: StateT [ClassName] IO (Either ParseError [SIYCFile])
     processFile
      = modify (name:)                                     >>
        lift (handler `handle` readFile (name ++ ".siyc")) >>=
@@ -50,7 +50,7 @@ loadAndResolve' name
 
 loadAndResolveAll'
   :: [SIYCImport]
-  -> StateT [ClassName] IO (Either ParseError [SIYCClass])
+  -> StateT [ClassName] IO (Either ParseError [SIYCFile])
 loadAndResolveAll' []
   = return $ Right []
 loadAndResolveAll' (SIYCImport name:imports)
@@ -58,13 +58,13 @@ loadAndResolveAll' (SIYCImport name:imports)
 
 resolve
   :: SIYCFile
-  -> StateT [ClassName] IO (Either ParseError [SIYCClass])
-resolve (SIYCFile imports c)
-  = resolve' imports [c]
+  -> StateT [ClassName] IO (Either ParseError [SIYCFile])
+resolve f@(SIYCFile imports _)
+  = resolve' imports [f]
 
 resolve'
   :: [SIYCImport]
-  -> [SIYCClass]
-  -> StateT [ClassName] IO (Either ParseError [SIYCClass])
+  -> [SIYCFile]
+  -> StateT [ClassName] IO (Either ParseError [SIYCFile])
 resolve' imports cs
   = loadAndResolveAll' imports >>= return . fmap (cs++)
