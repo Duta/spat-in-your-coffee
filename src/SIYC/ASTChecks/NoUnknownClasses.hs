@@ -7,17 +7,18 @@ import SIYC.Frontend.AST
 import SIYC.Util
 
 import Control.Applicative ((<$>))
+import Data.List (nub)
 
 findUnknownClasses
-  :: [SIYCClass]
+  :: [SIYCFile]
   -> [ClassName]
 findUnknownClasses cs
-  = concatMap checkClass cs
+  = nub $ concatMap checkClass cs
   where
     knownClasses
       :: [ClassName]
     knownClasses
-      = map (\(SIYCClass name _ _ _) -> name) cs
+      = map (\(SIYCFile _ (SIYCClass name _ _ _)) -> name) cs
     known
       :: TypeName
       -> Bool
@@ -29,9 +30,9 @@ findUnknownClasses cs
     check name
       = if known name then [] else [name]
     checkClass
-      :: SIYCClass
+      :: SIYCFile
       -> [ClassName]
-    checkClass (SIYCClass _ fields constructors methods)
+    checkClass (SIYCFile _ (SIYCClass _ fields constructors methods))
       = concat
       [ concatMap checkField fields
       , concatMap checkConstructor constructors
@@ -97,6 +98,8 @@ findUnknownClasses cs
     checkExpression
       :: SIYCExpression
       -> [ClassName]
+    checkExpression (SIYCAccess e1 e2)
+      = concatMap checkExpression [e1, e2]
     checkExpression (SIYCAssignment e1 e2)
       = concatMap checkExpression [e1, e2]
     checkExpression (SIYCCall _ args)
