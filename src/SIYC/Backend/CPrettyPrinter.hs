@@ -32,11 +32,11 @@ headerFile (CFile c imports (CStruct fields) functions)
     file = intercalate "\n" $ concat
       [ ["#ifndef " ++ map toUpper c ++ "_H"]
       , ["#define " ++ map toUpper c ++ "_H"]
-      , []
+      , [""]
       , struct'
-      , []
+      , [""]
       , funcSigs
-      , []
+      , [""]
       , ["#endif"]
       ]
     struct' =
@@ -60,14 +60,14 @@ sourceFile (CFile c imports struct functions)
   where
     file = intercalate "\n" $ concat
       [ imports'
-      , []
+      , [""]
       , functions'
       ]
     imports' = map
       (\(CImport name) ->
         "#include \"" ++ name ++".h\"") $
       CImport c : imports
-    functions' = concatMap
+    functions' = intercalate [""] $ map
       (\(CFunction r f ps ss) ->
         [ concat [r, " ", f] ++ params ps ++ " {"
         ] ++ map (intercalate "\n" . map (tab++) . stat) ss ++
