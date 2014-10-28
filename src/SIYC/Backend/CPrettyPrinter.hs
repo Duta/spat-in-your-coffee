@@ -105,6 +105,8 @@ stat (CWhile cond st)
 expr
   :: CExpression
   -> String
+expr (CAccess v f)
+  = concat [expr v, "->", expr f]
 expr (CAssignment v e)
   = concat [expr v, " = (", expr e, ")"]
 expr (CCall f args)

@@ -55,7 +55,8 @@ data SIYCStatement
     deriving Show
 
 data SIYCExpression
-  = SIYCAssignment SIYCExpression SIYCExpression
+  = SIYCAccess SIYCExpression SIYCExpression
+  | SIYCAssignment SIYCExpression SIYCExpression
   | SIYCBoolean Bool
   | SIYCCall Identifier [SIYCExpression]
   | SIYCChar Char

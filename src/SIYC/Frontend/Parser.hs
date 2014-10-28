@@ -322,13 +322,13 @@ siycDeclaration
     expr <- optionMaybe $ do
       reservedOp "="
       siycExpression
-    semi
     return $ SIYCDeclaration t var expr
 
 siycOperators
   :: OperatorTable Char () SIYCExpression
 siycOperators
-  = [[postfix "--" SIYCPostDecrement
+  = [[infix'' "."  SIYCAccess       AssocLeft]
+    ,[postfix "--" SIYCPostDecrement
      ,postfix "++" SIYCPostIncrement]
     ,[prefix  "!"  SIYCNot
      ,prefix  "--" SIYCPreDecrement

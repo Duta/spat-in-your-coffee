@@ -68,42 +68,62 @@ stat name (SIYCBlock stats)
 stat name SIYCEmpty
   = CEmpty
 stat name (SIYCExpression e)
-  = CExpression $ expr name e
+  = CExpression $ expr name [] e
 stat name (SIYCFor init cond inc st)
-  = CFor (expr name init) (expr name cond) (expr name inc) (stat name st)
+  = CFor (expr name [] init) (expr name [] cond) (expr name [] inc) (stat name st)
 stat name (SIYCIf cond s1 s2)
-  = CIf (expr name cond) (stat name s1) (stat name <$> s2)
+  = CIf (expr name [] cond) (stat name s1) (stat name <$> s2)
 stat name (SIYCReturn e)
-  = CReturn $ expr name <$> e
+  = CReturn $ expr name [] <$> e
 stat name (SIYCWhile cond st)
-  = CWhile (expr name cond) (stat name st)
+  = CWhile (expr name [] cond) (stat name st)
 
 expr
   :: ClassName
+  -> [CExpression]
   -> SIYCExpression
   -> CExpression
-expr name (SIYCAssignment v e)
-  = CAssignment (expr name v) (expr name e)
-expr name (SIYCBoolean b)
-  = error "expr name"
-expr name (SIYCCall v args)
-  = CCall (CVar $ name ++ "_" ++ v) $ CVar "this" : map (expr name) args
-expr name (SIYCChar c)
-  = CChar c
-expr name (SIYCDeclaration t v e)
-  = CDeclaration (cType t) v $ expr name <$> e
-expr name (SIYCInfix e1 op e2)
-  = CInfix (expr name e1) (inOp op) (expr name e2)
-expr name (SIYCNew c args)
-  = CCall (CVar $ "new_" ++ c) $ map (expr name) args
-expr name (SIYCPostfix e op)
-  = CPostfix (expr name e) (poOp op)
-expr name (SIYCPrefix op e)
-  = CPrefix (prOp op) (expr name e)
-expr name (SIYCString s)
-  = CString s
-expr name (SIYCVar v)
-  = CVar v
+expr name ctx (SIYCAccess v f)
+  = expr name (ctx ++ [expr name ctx v]) f
+expr name ctx (SIYCAssignment v e)
+  = CAssignment (withCtx ctx $ expr name [] v) (expr name [] e)
+expr name ctx (SIYCBoolean b)
+  = error "expr"
+expr name ctx (SIYCCall v args)
+  = CCall (CVar $ name ++ "_" ++ v) $ ctx' : map (expr name []) args
+  where
+    ctx' = case reverse ctx of
+      []     -> CVar "this"
+      (v:fs) -> withCtx (reverse fs) v
+expr name ctx (SIYCChar c)
+  = withCtx ctx $ CChar c
+expr name ctx (SIYCDeclaration t v e)
+  = withCtx ctx $ CDeclaration (cType t) v $ expr name [] <$> e
+expr name ctx (SIYCInfix e1 op e2)
+  = withCtx ctx $ CInfix (expr name [] e1) (inOp op) (expr name [] e2)
+expr name ctx (SIYCNew c args)
+  = withCtx ctx $ CCall (CVar $ "new_" ++ c) $ map (expr name []) args
+expr name ctx (SIYCPostfix e op)
+  = withCtx ctx $ CPostfix (expr name [] e) (poOp op)
+expr name ctx (SIYCPrefix op e)
+  = withCtx ctx $ CPrefix (prOp op) (expr name [] e)
+expr name ctx (SIYCString s)
+  = withCtx ctx $ CString s
+expr name ctx (SIYCVar v)
+  = withCtx ctx $ CVar v
+
+
+withCtx
+  :: [CExpression]
+  -> CExpression
+  -> CExpression
+withCtx [] e
+  = e
+withCtx ctx e
+  = CAccess (withCtx ctx' f) e
+  where
+    ctx' = init ctx
+    f    = last ctx
 
 inOp
   :: SIYCInfixOp

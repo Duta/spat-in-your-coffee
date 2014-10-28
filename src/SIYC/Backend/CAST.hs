@@ -37,7 +37,8 @@ data CStatement
     deriving (Show, Eq)
 
 data CExpression
-  = CAssignment CExpression CExpression
+  = CAccess CExpression CExpression
+  | CAssignment CExpression CExpression
   | CCall CExpression [CExpression]
   | CChar Char
   | CDeclaration TypeName Identifier (Maybe CExpression)
