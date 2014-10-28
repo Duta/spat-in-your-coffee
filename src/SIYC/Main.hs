@@ -1,5 +1,6 @@
 module SIYC.Main where
 
+import SIYC.ASTChecks.NoUnknownClasses
 import SIYC.Backend.CGen
 import SIYC.Backend.CPrettyPrinter
 import SIYC.Frontend.ImportsResolver
@@ -16,4 +17,6 @@ main
       Left e ->
         putStrLn $ "Parse error in class " ++ show e
       Right classes ->
-        mapM_ (uncurry writeFile) . concatMap pp $ map gen classes
+        case findUnknownClasses classes of
+          []  -> mapM_ (uncurry writeFile) . concatMap pp $ map gen classes
+          ucs -> putStrLn $ "Unknown classes: " ++ show ucs
