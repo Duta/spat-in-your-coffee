@@ -23,15 +23,31 @@ params
 params ps
   = "(" ++ intercalate ", " (map (\(CParameter t v) -> concat [t, " ", v]) ps) ++ ")"
 
+include
+  :: CInclude
+  -> String
+include
+  = ("#include \"" ++) . (++ ".h\"")
+
+define
+  :: CDefine
+  -> String
+define (CDefine name val)
+  = intercalate " " ["#define", name, val]
+
 headerFile
   :: CFile
   -> (FilePath, String)
-headerFile (CFile c imports (CStruct fields) functions)
+headerFile (CFile c includes defines struct functions)
   = (c ++ ".h",  file)
   where
     file = intercalate "\n" $ concat
       [ ["#ifndef " ++ map toUpper c ++ "_H"]
       , ["#define " ++ map toUpper c ++ "_H"]
+      , [""]
+      , map include includes
+      , [""]
+      , map define defines
       , [""]
       , struct'
       , [""]
@@ -44,7 +60,7 @@ headerFile (CFile c imports (CStruct fields) functions)
       ] ++ map
         (\(CStructField t v) ->
           concat [tab, t, " ", v, ";"])
-        fields ++
+        struct ++
       [ concat ["} ", c, ";"]
       ]
     funcSigs = map
@@ -55,18 +71,14 @@ headerFile (CFile c imports (CStruct fields) functions)
 sourceFile
   :: CFile
   -> (FilePath, String)
-sourceFile (CFile c imports struct functions)
+sourceFile (CFile c includes defines struct functions)
   = (c ++ ".c", file)
   where
     file = intercalate "\n" $ concat
-      [ imports'
+      [ [include c]
       , [""]
       , functions'
       ]
-    imports' = map
-      (\(CImport name) ->
-        "#include \"" ++ name ++".h\"") $
-      CImport c : imports
     functions' = intercalate [""] $ map
       (\(CFunction r f ps ss) ->
         [ concat [r, " ", f] ++ params ps ++ " {"
@@ -106,7 +118,9 @@ stat (CWhile cond st)
 expr
   :: CExpression
   -> String
-expr (CAccess v f)
+expr (CMemAccess v f)
+  = concat [expr v, ".", expr f]
+expr (CPtrAccess v f)
   = concat [expr v, "->", expr f]
 expr (CAssignment v e)
   = concat [expr v, " = (", expr e, ")"]

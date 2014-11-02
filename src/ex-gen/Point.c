@@ -7,7 +7,7 @@ Object Point_base = {
 
 void * new_Point(size_t size, Object base) {
     Point *this = new_Object(size, base);
-    super.init(&super);
+    this->super.init(&this->super);
     this->setX(this, 0);
     this->setY(this, 0);
     return this;
@@ -15,39 +15,44 @@ void * new_Point(size_t size, Object base) {
 
 void * new_Point_int_int(size_t size, Object base, int x, int y) {
     Point *this = new_Object(size, base);
-    super.init(&super);
+    this->super.init(&this->super);
     this->setX(this, x);
     this->setY(this, y);
     return this;
 }
 
 void init_Point(void *_this) {
+    init_Object(_this);
     Point *this = _this;
     this->super = Object_base;
     this->setX = Point_setX;
     this->setY = Point_setY;
     this->getX = Point_getX;
     this->getY = Point_getY;
-    return 0;
 }
 
 void free_Point(void *_this) {
     Point *this = _this;
+    free_Object(_this);
     this->super.free(_this);
 }
 
-void Point_setX(void *this, int x) {
+void Point_setX(void *_this, int x) {
+    Point *this = _this;
     this->x = x;
 }
 
-void Point_setY(void *this, int y) {
+void Point_setY(void *_this, int y) {
+    Point *this = _this;
     this->y = y;
 }
 
-int Point_getX(void *this) {
+int Point_getX(void *_this) {
+    Point *this = _this;
     return this->x;
 }
 
-int Point_getY(void *this) {
+int Point_getY(void *_this) {
+    Point *this = _this;
     return this->y;
 }

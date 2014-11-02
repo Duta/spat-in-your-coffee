@@ -13,17 +13,47 @@ import Control.Monad.State
 gen
   :: SIYCFile
   -> CFile
-gen (SIYCFile imports (SIYCClass name fields constructors methods))
-  = CFile name imports' struct $ freeFunction : constructorFunctions ++ methodFunctions
+gen (SIYCFile imports (SIYCClass c fields constructors methods))
+  = CFile c imports' defines struct functions 
   where
+    superclass = "Object"
+
     imports' = map
-      (\(SIYCImport siycClass) ->
-        CImport $ siycClass ++ ".h")
+      (\(SIYCImport siycClass) -> siycClass)
       imports
-    struct = CStruct $ map
+
+    struct = map
       (\(SIYCField _ t v) ->
         CStructField (cType t) v)
       fields
+
+    functions = concat [news, [init], [free], methods']
+
+    (defines, news) = error "defines"
+
+    init = CFunction "void" ("init_" ++ c) [CParameter (ptr "void") "_this"] $ concat
+      [ [CExpression . CDeclaration (ptr c) "this" . Just $ CVar "_this"]
+      , [CExpression . CAssignment (CPtrAccess (CVar "this") (CVar "super")) . CVar $ superclass ++ "_base"]
+      , map
+          (\v ->
+            CExpression . CAssignment (CPtrAccess (CVar "this") (CVar v)) . CVar $ concat [c, "_", v])
+          methodNames
+      , [CReturn . Just $ CInt 0]
+      ]
+
+    free = CFunction "void" ("free_" ++ c) [CParameter (ptr "void") "_this"]
+      [ CExpression . CDeclaration (ptr c) "this" . Just $ CVar "_this"
+      , CExpression . CPtrAccess (CVar "this") . CMemAccess (CVar "super") $ CCall (CVar "free") [CVar "_this"]
+      ]
+
+    methods' = map
+      (\(SIYCMethod _ r f ps ss) ->
+        CFunction (CTypeSig r (c ++ "_" ++ f) (CParameter (ptr $ cType c) "this" : map param ps)) (map (stat c) ss))
+      methods
+
+    methodNames = map (\(SIYCMethod _ _ v _ _) -> v) methods
+
+{-
     freeFunction = CFunction "void" ("free_" ++ name) [CParameter (ptr name) "this"]
       [ CIf (CVar "this")
           (CExpression $ CCall (CVar "free") [CVar "this"])
@@ -37,7 +67,7 @@ gen (SIYCFile imports (SIYCClass name fields constructors methods))
       (\(SIYCMethod _ r f ps ss) ->
         CFunction r (name ++ "_" ++ f) (CParameter (cType name) "this" : map param ps) (map (stat name) ss))
       methods
-
+-}
 cType
   :: TypeName
   -> TypeName
@@ -120,7 +150,7 @@ withCtx
 withCtx [] e
   = e
 withCtx ctx e
-  = CAccess (withCtx ctx' f) e
+  = CPtrAccess (withCtx ctx' f) e
   where
     ctx' = init ctx
     f    = last ctx

@@ -3,24 +3,27 @@ module SIYC.Backend.CAST where
 import SIYC.Util
 
 data CFile
-  = CFile ClassName [CImport] CStruct [CFunction]
+  = CFile ClassName [CInclude] [CDefine] CStruct [CFunction]
     deriving (Show, Eq)
 
-data CImport
-  = CImport FilePath
+type CInclude = FilePath
+
+data CDefine
+  = CDefine String String
     deriving (Show, Eq)
 
-data CStruct
-  = CStruct [CStructField]
-    deriving (Show, Eq)
+type CStruct = [CStructField]
 
 data CStructField
   = CStructField TypeName Identifier
     deriving (Show, Eq)
 
 data CFunction
-  = CFunction TypeName Identifier [CParameter] [CStatement]
+  = CFunction CTypeSig [CStatement]
     deriving (Show, Eq)
+
+data CTypeSig
+  = CTypeSig TypeName Identifier [CParameter]
 
 data CParameter
   = CParameter TypeName Identifier
@@ -37,12 +40,14 @@ data CStatement
     deriving (Show, Eq)
 
 data CExpression
-  = CAccess CExpression CExpression
+  = CMemAccess CExpression CExpression
+  | CPtrAccess CExpression CExpression
   | CAssignment CExpression CExpression
   | CCall CExpression [CExpression]
   | CChar Char
   | CDeclaration TypeName Identifier (Maybe CExpression)
   | CInfix CExpression CInfixOp CExpression
+  | CInt Int
   | CPostfix CExpression CPostfixOp
   | CPrefix CPrefixOp CExpression
   | CString String

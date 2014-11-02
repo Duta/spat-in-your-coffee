@@ -2,9 +2,10 @@
 #define POINT_H
 
 #include "Object.h"
+#include <stddef.h>
 
-#define NEW_Object() new_Point(sizeof(Point), Point_base)
-#define NEW_Object(x, y) new_Point_int_int(sizeof(Point), Point_base, x, y)
+#define NEW_Point() new_Point(sizeof(Point), Point_base)
+#define NEW_Point_int_int(x, y) new_Point_int_int(sizeof(Point), Point_base, x, y)
 
 typedef struct Point {
     Object super;
@@ -15,6 +16,8 @@ typedef struct Point {
     int (*getX)(void *this);
     int (*getY)(void *this);
 } Point;
+
+Object Point_base;
 
 void * new_Point(size_t size, Object base);
 void * new_Point_int_int(size_t size, Object base, int x, int y);
